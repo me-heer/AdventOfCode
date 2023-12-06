@@ -3,13 +3,12 @@ package main
 import (
 	"bufio"
 	"io"
-	"math"
 	"os"
 	"strconv"
 	"strings"
 )
 
-func part1() {
+func main() {
 	input, err := os.Open("day-5/input.txt")
 	if err != nil {
 		panic(err)
@@ -24,20 +23,15 @@ func part1() {
 
 	reader := bufio.NewReader(input)
 	seedsLine, err := reader.ReadString('\n')
-	seedRanges := strings.Split(strings.TrimSpace(strings.Split(seedsLine, ":")[1]), " ")
-	var seeds []string
-	for i := 0; i < len(seedRanges); i += 2 {
-		lower, _ := strconv.Atoi(seedRanges[i])
-		upper, _ := strconv.Atoi(seedRanges[i+1])
+	seedRangesLine := strings.Split(strings.TrimSpace(strings.Split(seedsLine, ":")[1]), " ")
+	var seedRanges [][]int
+	for i := 0; i < len(seedRangesLine); i += 2 {
+		lower, _ := strconv.Atoi(seedRangesLine[i])
+		upper, _ := strconv.Atoi(seedRangesLine[i+1])
 		upper--
-
-		for j := lower; j <= lower+upper; j++ {
-			strJ := strconv.Itoa(j)
-			seeds = append(seeds, strJ)
-		}
+		rangeInt := []int{lower, lower + upper}
+		seedRanges = append(seedRanges, rangeInt)
 	}
-
-	println("TOTAL SEEDS: ", len(seeds))
 
 	var inputLines []string
 	for {
@@ -107,26 +101,85 @@ func part1() {
 	conversionRates = append(conversionRates, temperatureToHumidity)
 	conversionRates = append(conversionRates, humidityToLocation)
 
-	minSeed := math.MaxInt64
-	for _, seed := range seeds {
-		seedNum, _ := strconv.Atoi(seed)
+	//answer := math.MaxInt64
+	for _, seedRange := range seedRanges {
+		var currentRanges [][]int
+		currentRanges = append(currentRanges, seedRange)
 		for _, conversionRate := range conversionRates {
+			var executedRanges [][]int
 			for _, sts := range conversionRate {
-				destStart, _ := strconv.Atoi(strings.Split(sts, " ")[0])
-				sourceStart, _ := strconv.Atoi(strings.Split(sts, " ")[1])
+				destLower, _ := strconv.Atoi(strings.Split(sts, " ")[0])
+				sourceLower, _ := strconv.Atoi(strings.Split(sts, " ")[1])
 				rangeNumber, _ := strconv.Atoi(strings.Split(sts, " ")[2])
 
-				if seedNum >= sourceStart && seedNum <= sourceStart+rangeNumber-1 {
-					seedNum = destStart + (seedNum - sourceStart)
-					break
+				// max between sourceLower and currentLower
+				// min between sourceUpper and currentUpper
+
+				var resultRanges [][]int
+				for _, currentRange := range currentRanges {
+					currentLower := currentRange[0]
+					currentUpper := currentRange[1]
+					sourceUpper := sourceLower + rangeNumber - 1
+
+					if (currentLower > sourceUpper && currentUpper > sourceUpper) || (currentUpper < sourceLower && currentLower < sourceLower) {
+						resultRanges = append(resultRanges, currentRange)
+						continue
+					}
+
+					alreadyExecuted := false
+					for _, executedRange := range executedRanges {
+						if currentLower == executedRange[0] && currentUpper == executedRange[1] {
+							alreadyExecuted = true
+							break
+						}
+					}
+					if alreadyExecuted {
+						resultRanges = append(resultRanges, currentRange)
+						break
+					}
+
+					var lowerMax int
+					if currentLower >= sourceLower {
+						lowerMax = currentLower
+					} else {
+						lowerMax = sourceLower
+					}
+
+					var upperMin int
+					if currentUpper <= sourceUpper {
+						upperMin = currentUpper
+					} else {
+						upperMin = sourceUpper
+					}
+
+					//[lowerMax, upperMin]
+					//println("currentLower: ", currentLower)
+					//println("currentHigher: ", currentUpper)
+					//println("lowerMax:", lowerMax)
+					//println("upperMin:", upperMin)
+
+					if currentLower < sourceLower {
+						var newRange = []int{currentLower, sourceLower - 1}
+						resultRanges = append(resultRanges, newRange)
+					}
+					if currentUpper > sourceUpper {
+						var newRange = []int{sourceUpper + 1, currentUpper}
+						resultRanges = append(resultRanges, newRange)
+					}
+
+					lowerMax = destLower + (lowerMax - sourceLower)
+					upperMin = destLower + (upperMin - sourceLower)
+
+					var newRange = []int{lowerMax, upperMin}
+					resultRanges = append(resultRanges, newRange)
+					executedRanges = append(executedRanges, newRange)
 				}
+				currentRanges = resultRanges
 			}
 		}
-		println(seedNum)
-		if seedNum <= minSeed {
-			minSeed = seedNum
+		for _, cr := range currentRanges {
+			println(cr[0], " ", cr[1])
 		}
+		// find minimum number here
 	}
-	println(minSeed)
-
 }

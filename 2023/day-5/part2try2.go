@@ -3,6 +3,7 @@ package main
 import (
 	"bufio"
 	"io"
+	"math"
 	"os"
 	"strconv"
 	"strings"
@@ -24,12 +25,12 @@ func main() {
 	reader := bufio.NewReader(input)
 	seedsLine, err := reader.ReadString('\n')
 	seedRangesLine := strings.Split(strings.TrimSpace(strings.Split(seedsLine, ":")[1]), " ")
-	var seedRanges [][]int
+	var seedRanges [][]int64
 	for i := 0; i < len(seedRangesLine); i += 2 {
-		lower, _ := strconv.Atoi(seedRangesLine[i])
-		upper, _ := strconv.Atoi(seedRangesLine[i+1])
+		lower, _ := strconv.ParseInt(seedRangesLine[i], 10, 64)
+		upper, _ := strconv.ParseInt(seedRangesLine[i+1], 10, 64)
 		upper--
-		rangeInt := []int{lower, lower + upper}
+		rangeInt := []int64{lower, lower + upper}
 		seedRanges = append(seedRanges, rangeInt)
 	}
 
@@ -101,21 +102,22 @@ func main() {
 	conversionRates = append(conversionRates, temperatureToHumidity)
 	conversionRates = append(conversionRates, humidityToLocation)
 
-	//answer := math.MaxInt64
+	var answer int64 = math.MaxInt64
 	for _, seedRange := range seedRanges {
-		var currentRanges [][]int
+		var currentRanges [][]int64
 		currentRanges = append(currentRanges, seedRange)
 		for _, conversionRate := range conversionRates {
-			var executedRanges [][]int
+			var executedRanges [][]int64
 			for _, sts := range conversionRate {
-				destLower, _ := strconv.Atoi(strings.Split(sts, " ")[0])
-				sourceLower, _ := strconv.Atoi(strings.Split(sts, " ")[1])
-				rangeNumber, _ := strconv.Atoi(strings.Split(sts, " ")[2])
+
+				destLower, _ := strconv.ParseInt(strings.Split(sts, " ")[0], 10, 64)
+				sourceLower, _ := strconv.ParseInt(strings.Split(sts, " ")[1], 10, 64)
+				rangeNumber, _ := strconv.ParseInt(strings.Split(sts, " ")[2], 10, 64)
 
 				// max between sourceLower and currentLower
 				// min between sourceUpper and currentUpper
 
-				var resultRanges [][]int
+				var resultRanges [][]int64
 				for _, currentRange := range currentRanges {
 					currentLower := currentRange[0]
 					currentUpper := currentRange[1]
@@ -135,17 +137,17 @@ func main() {
 					}
 					if alreadyExecuted {
 						resultRanges = append(resultRanges, currentRange)
-						break
+						continue
 					}
 
-					var lowerMax int
+					var lowerMax int64
 					if currentLower >= sourceLower {
 						lowerMax = currentLower
 					} else {
 						lowerMax = sourceLower
 					}
 
-					var upperMin int
+					var upperMin int64
 					if currentUpper <= sourceUpper {
 						upperMin = currentUpper
 					} else {
@@ -159,27 +161,35 @@ func main() {
 					//println("upperMin:", upperMin)
 
 					if currentLower < sourceLower {
-						var newRange = []int{currentLower, sourceLower - 1}
+						var newRange = []int64{currentLower, sourceLower - 1}
 						resultRanges = append(resultRanges, newRange)
 					}
 					if currentUpper > sourceUpper {
-						var newRange = []int{sourceUpper + 1, currentUpper}
+						var newRange = []int64{sourceUpper + 1, currentUpper}
 						resultRanges = append(resultRanges, newRange)
 					}
 
 					lowerMax = destLower + (lowerMax - sourceLower)
 					upperMin = destLower + (upperMin - sourceLower)
 
-					var newRange = []int{lowerMax, upperMin}
+					var newRange = []int64{lowerMax, upperMin}
 					resultRanges = append(resultRanges, newRange)
 					executedRanges = append(executedRanges, newRange)
 				}
-				currentRanges = resultRanges
+				if len(resultRanges) > 0 {
+					currentRanges = resultRanges
+				}
 			}
 		}
 		for _, cr := range currentRanges {
-			println(cr[0], " ", cr[1])
+			if cr[0] < answer {
+				answer = cr[0]
+			}
+			if cr[1] < answer {
+				answer = cr[1]
+			}
 		}
 		// find minimum number here
 	}
+	println(answer)
 }

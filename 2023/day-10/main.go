@@ -80,6 +80,7 @@ var connectingPaths = map[string]map[string]func(int, int) (int, int, string){
 			return row, col, "fromup"
 		},
 	},
+	"S": {},
 }
 
 var tiles []string
@@ -166,96 +167,111 @@ func main() {
 		println()
 	}
 
-	println("INPUT MAP INVERTED:")
+	// find dots,
+	// for each dot,
+	// go in all directions, keep track of the boundaries, all points in boundaries must be in mainLoop
+	var dots []point
+
 	for rowIndex := 0; rowIndex < len(tiles); rowIndex++ {
 		for colIndex := 0; colIndex < len(tiles[0]); colIndex++ {
-			if slices.Contains(mainLoop, point{rowIndex, colIndex}) {
-				print(".")
-			} else {
-				print("#")
+			if !slices.Contains(mainLoop, point{rowIndex, colIndex}) && string(tiles[rowIndex][colIndex]) == "." {
+				dots = append(dots, point{rowIndex, colIndex})
 			}
 		}
 		println()
 	}
 
-	// horizontal scan
-	horizontallyScannedTiles := make([][]string, len(tiles))
-	for i := 0; i < len(tiles); i++ {
-		horizontallyScannedTiles[i] = make([]string, len(tiles[0]))
-	}
+	sum := 0
+	for _, p := range dots {
+		var boundaries = make(map[point]bool, 0)
+		var history = make([]point, 0)
+		boundaries, history = floodFill(tiles, p.rowIndex, p.colIndex, boundaries, history)
 
-	for rowIndex := 0; rowIndex < len(tiles); rowIndex++ {
-		// find leftMost mainLoop point, rightMost mainLoop point
-		leftMostMainLoopPointColIndex := math.MaxInt
-		rightMostMainLoopPointColIndex := math.MinInt
-		for _, pointInMainLoop := range mainLoop {
-			if pointInMainLoop.rowIndex == rowIndex {
-				if pointInMainLoop.colIndex < leftMostMainLoopPointColIndex {
-					leftMostMainLoopPointColIndex = pointInMainLoop.colIndex
-				}
-				if pointInMainLoop.colIndex > rightMostMainLoopPointColIndex {
-					rightMostMainLoopPointColIndex = pointInMainLoop.colIndex
-				}
-			}
+		areBoundariesValid := true
+		if boundaries[point{-1, -1}] {
+			areBoundariesValid = false
+		}
+		if !areBoundariesValid {
+			continue
 		}
 
-		for colIndex := 0; colIndex < len(tiles[0]); colIndex++ {
-			if slices.Contains(mainLoop, point{rowIndex, colIndex}) {
-				horizontallyScannedTiles[rowIndex][colIndex] = "#"
-			} else if colIndex >= leftMostMainLoopPointColIndex && colIndex <= rightMostMainLoopPointColIndex {
-				horizontallyScannedTiles[rowIndex][colIndex] = "I"
-			} else {
-				horizontallyScannedTiles[rowIndex][colIndex] = "."
+		for point := range boundaries {
+			if !slices.Contains(mainLoop, point) {
+				areBoundariesValid = false
+				break
 			}
 		}
+		sum += len(history)
+		println(len(history))
 	}
+	println(sum)
 
-	// vertical scan
-	verticallyScannedTiles := make([][]string, len(tiles))
-	for i := 0; i < len(tiles); i++ {
-		verticallyScannedTiles[i] = make([]string, len(tiles[0]))
-	}
+}
 
-	for colIndex := 0; colIndex < len(tiles[0]); colIndex++ {
-		// find topMost mainLoop point, bottomMost mainLoop point
-		topMostMainLoopRowIndex := math.MaxInt
-		bottomMostMainLoopRowIndex := math.MinInt
-		for _, pointInMainLoop := range mainLoop {
-			if pointInMainLoop.colIndex == colIndex {
-				if pointInMainLoop.rowIndex < topMostMainLoopRowIndex {
-					topMostMainLoopRowIndex = pointInMainLoop.rowIndex
-				}
-				if pointInMainLoop.rowIndex > bottomMostMainLoopRowIndex {
-					bottomMostMainLoopRowIndex = pointInMainLoop.rowIndex
-				}
-			}
-		}
+var scanned []point
 
-		for rowIndex := 0; rowIndex < len(tiles); rowIndex++ {
-			if slices.Contains(mainLoop, point{rowIndex, colIndex}) {
-				verticallyScannedTiles[rowIndex][colIndex] = "#"
-			} else if rowIndex >= topMostMainLoopRowIndex && topMostMainLoopRowIndex <= bottomMostMainLoopRowIndex {
-				verticallyScannedTiles[rowIndex][colIndex] = "I"
-			} else {
-				verticallyScannedTiles[rowIndex][colIndex] = "."
-			}
+func isBoundary(s string) bool {
+	for boundary := range connectingPaths {
+		if s == boundary {
+			return true
 		}
 	}
+	return false
+}
 
-	println("WE DID IT BRO")
-	for rowIndex := 0; rowIndex < len(tiles); rowIndex++ {
-		for colIndex := 0; colIndex < len(tiles[0]); colIndex++ {
-			if horizontallyScannedTiles[rowIndex][colIndex] == "#" {
-				print("#")
-			} else if horizontallyScannedTiles[rowIndex][colIndex] == "I" && verticallyScannedTiles[rowIndex][colIndex] == "I" {
-				print("I")
-			} else {
-				print(".")
-			}
-		}
-		println()
+func floodFill(tiles []string, row, col int, boundaries map[point]bool, history []point) (map[point]bool, []point) {
+	if slices.Contains(scanned, point{row, col}) {
+		return boundaries, history
 	}
 
+	history = append(history, point{row, col})
+	scanned = append(scanned, point{row, col})
+
+	if col > 0 {
+		next := tiles[row][col-1]
+		if isBoundary(string(next)) {
+			boundaries[point{row, col - 1}] = true
+		} else if !slices.Contains(scanned, point{row, col - 1}) {
+			boundaries, history = floodFill(tiles, row, col-1, boundaries, history)
+		}
+	} else {
+		boundaries[point{-1, -1}] = true
+	}
+
+	if col < len(tiles[0])-1 {
+		next := tiles[row][col+1]
+		if isBoundary(string(next)) {
+			boundaries[point{row, col + 1}] = true
+		} else if !slices.Contains(scanned, point{row, col + 1}) {
+			boundaries, history = floodFill(tiles, row, col+1, boundaries, history)
+		}
+	} else {
+		boundaries[point{-1, -1}] = true
+	}
+
+	if row > 0 {
+		next := tiles[row-1][col]
+		if isBoundary(string(next)) {
+			boundaries[point{row - 1, col}] = true
+		} else if !slices.Contains(scanned, point{row - 1, col}) {
+			boundaries, history = floodFill(tiles, row-1, col, boundaries, history)
+		}
+	} else {
+		boundaries[point{-1, -1}] = true
+	}
+
+	if row < len(tiles)-1 {
+		next := tiles[row+1][col]
+		if isBoundary(string(next)) {
+			boundaries[point{row + 1, col}] = true
+		} else if !slices.Contains(scanned, point{row + 1, col}) {
+			boundaries, history = floodFill(tiles, row+1, col, boundaries, history)
+		}
+	} else {
+		boundaries[point{-1, -1}] = true
+	}
+
+	return boundaries, history
 }
 
 func walk(row, col int, connectingPath string, fromDir string, totalSteps int, history []point) {

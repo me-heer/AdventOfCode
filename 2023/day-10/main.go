@@ -167,112 +167,52 @@ func main() {
 		println()
 	}
 
-	// find dots,
-	// for each dot,
-	// go in all directions, keep track of the boundaries, all points in boundaries must be in mainLoop
-	var dots []point
-
+	var inLoop []point
+	in := 0
 	for rowIndex := 0; rowIndex < len(tiles); rowIndex++ {
 		for colIndex := 0; colIndex < len(tiles[0]); colIndex++ {
-			if !slices.Contains(mainLoop, point{rowIndex, colIndex}) && string(tiles[rowIndex][colIndex]) == "." {
-				dots = append(dots, point{rowIndex, colIndex})
+			if slices.Contains(mainLoop, point{rowIndex, colIndex}) {
+				continue
+			}
+
+			crosses := 0
+			for rayRow, rayCol := rowIndex+1, colIndex+1; rayRow < len(tiles) && rayCol < len(tiles[0]); rayRow, rayCol = rayRow+1, rayCol+1 {
+				if slices.Contains(mainLoop, point{rayRow, rayCol}) && string(tiles[rayRow][rayCol]) != "L" && string(tiles[rayRow][rayCol]) != "7" {
+					crosses++
+				}
+			}
+			if crosses%2 == 1 {
+				inLoop = append(inLoop, point{rowIndex, colIndex})
+				in++
+			}
+		}
+	}
+
+	println("SOLUTION MAP:")
+	for rowIndex := 0; rowIndex < len(tiles); rowIndex++ {
+		for colIndex := 0; colIndex < len(tiles[0]); colIndex++ {
+			if rowIndex == startRow && colIndex == startCol {
+				print("S")
+			} else if slices.Contains(inLoop, point{rowIndex, colIndex}) {
+				print("*")
+			} else if slices.Contains(mainLoop, point{rowIndex, colIndex}) {
+				print(string(tiles[rowIndex][colIndex]))
+			} else {
+				print(".")
 			}
 		}
 		println()
 	}
 
-	sum := 0
-	for _, p := range dots {
-		var boundaries = make(map[point]bool, 0)
-		var history = make([]point, 0)
-		boundaries, history = floodFill(tiles, p.rowIndex, p.colIndex, boundaries, history)
+	println(in)
 
-		areBoundariesValid := true
-		if boundaries[point{-1, -1}] {
-			areBoundariesValid = false
-		}
-		if !areBoundariesValid {
-			continue
-		}
-
-		for point := range boundaries {
-			if !slices.Contains(mainLoop, point) {
-				areBoundariesValid = false
-				break
-			}
-		}
-		sum += len(history)
-		println(len(history))
+	for _, s := range startConnectors {
+		println(s)
 	}
-	println(sum)
-
+	// TODO: Find appropriate connector used in place of S
 }
 
-var scanned []point
-
-func isBoundary(s string) bool {
-	for boundary := range connectingPaths {
-		if s == boundary {
-			return true
-		}
-	}
-	return false
-}
-
-func floodFill(tiles []string, row, col int, boundaries map[point]bool, history []point) (map[point]bool, []point) {
-	if slices.Contains(scanned, point{row, col}) {
-		return boundaries, history
-	}
-
-	history = append(history, point{row, col})
-	scanned = append(scanned, point{row, col})
-
-	if col > 0 {
-		next := tiles[row][col-1]
-		if isBoundary(string(next)) {
-			boundaries[point{row, col - 1}] = true
-		} else if !slices.Contains(scanned, point{row, col - 1}) {
-			boundaries, history = floodFill(tiles, row, col-1, boundaries, history)
-		}
-	} else {
-		boundaries[point{-1, -1}] = true
-	}
-
-	if col < len(tiles[0])-1 {
-		next := tiles[row][col+1]
-		if isBoundary(string(next)) {
-			boundaries[point{row, col + 1}] = true
-		} else if !slices.Contains(scanned, point{row, col + 1}) {
-			boundaries, history = floodFill(tiles, row, col+1, boundaries, history)
-		}
-	} else {
-		boundaries[point{-1, -1}] = true
-	}
-
-	if row > 0 {
-		next := tiles[row-1][col]
-		if isBoundary(string(next)) {
-			boundaries[point{row - 1, col}] = true
-		} else if !slices.Contains(scanned, point{row - 1, col}) {
-			boundaries, history = floodFill(tiles, row-1, col, boundaries, history)
-		}
-	} else {
-		boundaries[point{-1, -1}] = true
-	}
-
-	if row < len(tiles)-1 {
-		next := tiles[row+1][col]
-		if isBoundary(string(next)) {
-			boundaries[point{row + 1, col}] = true
-		} else if !slices.Contains(scanned, point{row + 1, col}) {
-			boundaries, history = floodFill(tiles, row+1, col, boundaries, history)
-		}
-	} else {
-		boundaries[point{-1, -1}] = true
-	}
-
-	return boundaries, history
-}
+var startConnectors []string
 
 func walk(row, col int, connectingPath string, fromDir string, totalSteps int, history []point) {
 	previousMinDistance, ok := minDistance[point{row, col}]
@@ -289,6 +229,8 @@ func walk(row, col int, connectingPath string, fromDir string, totalSteps int, h
 		walk(row, col, newCurrentTile, fromDir, totalSteps+1, history)
 	}
 	if connectingPath == "S" {
+		startConnectors = append(startConnectors, string(tiles[history[len(history)-2].rowIndex][history[len(history)-2].colIndex]))
+		println("REACHED S FROM ", string(tiles[history[len(history)-2].rowIndex][history[len(history)-2].colIndex]))
 		minDistance[point{row, col}] = 0
 		mainLoop = history
 	}

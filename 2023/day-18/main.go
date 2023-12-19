@@ -3,6 +3,7 @@ package main
 import (
 	"bufio"
 	"log"
+	"math"
 	"os"
 	"strconv"
 	"strings"
@@ -19,7 +20,8 @@ var visited = make(map[Point]bool)
 var pointsInside = 0
 
 func main() {
-	scanner := bufio.NewScanner(os.Stdin)
+	file, _ := os.Open("day-18/input.txt")
+	scanner := bufio.NewScanner(file)
 
 	var directions []string
 	for scanner.Scan() {
@@ -40,117 +42,73 @@ func main() {
 			grid[i][j] = "."
 		}
 	}
-	row, col := 190, 90
-	for i, input := range directions {
-		println(i)
+	var points = make([]Point, 0)
+	row, col := 0, 0
+	boundaries := 0
+	for _, input := range directions {
 		splitInput := strings.Split(input, " ")
-		dir := splitInput[0]
-		n, _ := strconv.Atoi(splitInput[1])
-		grid, row, col = move(dir, n, row, col, grid)
-	}
-	printGrid(grid)
+		hex := splitInput[2]
+		hexNum := hex[2 : len(hex)-2]
 
-	floodFill(150, 150, grid)
-	println(pointsInside)
-}
+		number, _ := strconv.ParseInt(hexNum, 16, 64)
 
-func floodFill(r, c int, grid [][]string) {
-	moveInAllDirs(r, c, grid)
-
-}
-
-func moveInAllDirs(r, c int, grid [][]string) {
-	goUp(r, c, grid)
-	goDown(r, c, grid)
-	goLeft(r, c, grid)
-	goRight(r, c, grid)
-}
-
-func goUp(r, c int, grid [][]string) {
-	r--
-	if grid[r][c] == "." && !visited[Point{r, c}] {
-		visited[Point{r, c}] = true
-		pointsInside++
-	} else {
-		return
-	}
-	moveInAllDirs(r, c, grid)
-}
-
-func goDown(r, c int, grid [][]string) {
-	r++
-	if grid[r][c] == "." && !visited[Point{r, c}] {
-		visited[Point{r, c}] = true
-		pointsInside++
-	} else {
-		return
-	}
-	moveInAllDirs(r, c, grid)
-}
-
-func goLeft(r, c int, grid [][]string) {
-	c--
-	if grid[r][c] == "." && !visited[Point{r, c}] {
-		visited[Point{r, c}] = true
-		pointsInside++
-	} else {
-		return
-	}
-	moveInAllDirs(r, c, grid)
-}
-
-func goRight(r, c int, grid [][]string) {
-	c++
-	if grid[r][c] == "." && !visited[Point{r, c}] {
-		visited[Point{r, c}] = true
-		pointsInside++
-	} else {
-		return
-	}
-	moveInAllDirs(r, c, grid)
-}
-
-func printGrid(grid [][]string) {
-	for i := 0; i < SIZE; i++ {
-		for j := 0; j < SIZE; j++ {
-			print(grid[i][j])
+		actualDir, _ := strconv.Atoi(hex[len(hex)-2 : len(hex)-1])
+		var dir string
+		switch actualDir {
+		case 0:
+			dir = "R"
+		case 1:
+			dir = "D"
+		case 2:
+			dir = "L"
+		case 3:
+			dir = "U"
 		}
-		println()
+		n, _ := strconv.Atoi(splitInput[1])
+		n = int(number)
+		boundaries += n
+		row, col = move(dir, n, row, col)
+		points = append(points, Point{row, col})
 	}
 
-	println("---")
+	sum1, sum2 := 0, 0
+	for i := 0; i < len(points)-1; i++ {
+		sum1 += points[i].i * points[i+1].j
+		sum2 += points[i].j * points[i+1].i
+	}
+	result := int(math.Abs(float64(sum1-sum2))) / 2
+	println(result)
+	println(boundaries)
+	println(result + boundaries/2 + 1)
+
 }
 
-func move(dir string, n int, r int, c int, grid [][]string) ([][]string, int, int) {
+func move(dir string, n int, r int, c int) (int, int) {
 	switch dir {
 	case "U":
 		var i int
 		for i = 1; i <= n; i++ {
 			r--
-			grid[r][c] = "#"
 			pointsInside++
 		}
 	case "D":
 		var i int
 		for i = 1; i <= n; i++ {
 			r++
-			grid[r][c] = "#"
 			pointsInside++
 		}
 	case "L":
 		var j int
 		for j = 1; j <= n; j++ {
 			c--
-			grid[r][c] = "#"
 			pointsInside++
 		}
 	case "R":
 		var j int
 		for j = 1; j <= n; j++ {
 			c++
-			grid[r][c] = "#"
 			pointsInside++
 		}
 	}
-	return grid, r, c
+	return r, c
 }

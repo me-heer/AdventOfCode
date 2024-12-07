@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"os"
 	"slices"
+	"sort"
 	"strconv"
 	"strings"
 )
@@ -57,12 +58,40 @@ func main() {
 			}
 			println()
 
-			println("RELEVANT RULES: ")
-			for _, v := range currentRules {
-				println(v)
+			type kv struct {
+				element       string
+				numberOfRules int
 			}
 
-			swapAndTryAgain(update, currentRules)
+			var sortedRulesByElement []kv
+			for _, u := range update {
+				counter := 0
+				for _, r := range currentRules {
+					if strings.Split(r, "|")[0] == u {
+						counter++
+					}
+				}
+				sortedRulesByElement = append(sortedRulesByElement, kv{u, counter})
+			}
+
+			sort.Slice(sortedRulesByElement, func(i, j int) bool {
+				return sortedRulesByElement[i].numberOfRules > sortedRulesByElement[j].numberOfRules
+			})
+
+			// Print the sorted results
+			for _, kv := range sortedRulesByElement {
+				fmt.Printf("%s: %d\n", kv.element, kv.numberOfRules)
+			}
+
+			var fixedUpdate []string
+			for _, v := range sortedRulesByElement {
+				fixedUpdate = append(fixedUpdate, v.element)
+			}
+
+			middlePage, _ := strconv.Atoi(fixedUpdate[len(fixedUpdate)/2])
+			failedSum += middlePage
+
+			// swapAndTryAgain(update, currentRules)
 		}
 	}
 	println("PART 1:", sum)

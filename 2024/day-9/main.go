@@ -28,26 +28,55 @@ func main() {
 		diskMap = scanner.Text()
 	}
 
-	expandedDiskMap := expandDiskMap(diskMap)
+	expandedDiskMap, maxFileId := expandDiskMap(diskMap)
 
-	start := 0
 	end := len(expandedDiskMap) - 1
-	for start < end {
-		if expandedDiskMap[start] == -1 && expandedDiskMap[end] != -1 {
-			expandedDiskMap[start], expandedDiskMap[end] = expandedDiskMap[end], expandedDiskMap[start]
-			start++
-			end--
-		} else if expandedDiskMap[start] != -1 {
-			start++
-		} else if expandedDiskMap[end] == -1 {
+	for maxFileId > 0 {
+		fileSize := 0
+		var currFileIndices []int
+
+		for expandedDiskMap[end] != maxFileId {
 			end--
 		}
+
+		for expandedDiskMap[end] == maxFileId {
+			currFileIndices = append(currFileIndices, end)
+			end--
+			fileSize++
+		}
+		if fileSize == 0 {
+			maxFileId--
+			continue
+		}
+
+		moved := false
+		for f := 0; f < len(freeBlocks); f++ {
+			if freeBlocks[f].size >= fileSize && freeBlocks[f].index < end {
+				moved = true
+				for i := 0; i < fileSize; i++ {
+					expandedDiskMap[freeBlocks[f].index] = maxFileId
+					freeBlocks[f].index++
+				}
+				freeBlocks[f].size = freeBlocks[f].size - fileSize
+				break
+			}
+		}
+
+		if moved {
+			for _, v := range currFileIndices {
+				expandedDiskMap[v] = -1
+			}
+		}
+
+		maxFileId--
 	}
+
+	fmt.Println(expandedDiskMap)
 
 	checksum := int64(0)
 	for i := 0; i < len(expandedDiskMap); i++ {
 		if expandedDiskMap[i] == -1 {
-			break
+			continue
 		}
 		fileId := expandedDiskMap[i]
 		checksum += (int64(i) * int64(fileId))
@@ -55,7 +84,7 @@ func main() {
 	println(checksum)
 }
 
-func expandDiskMap(diskMap string) []int {
+func expandDiskMap(diskMap string) ([]int, int) {
 	var expandedDiskMap []int
 	fileId := 0
 	diskIndex := 0
@@ -76,5 +105,5 @@ func expandDiskMap(diskMap string) []int {
 			}
 		}
 	}
-	return expandedDiskMap
+	return expandedDiskMap, fileId - 1
 }

@@ -33,7 +33,6 @@ func main() {
 	for i := 0; i < len(matrix); i++ {
 		for j := 0; j < len(matrix[0]); j++ {
 			if !pointsCovered[Point{i, j}] {
-				fmt.Println("STARTING FOR: ", string(rune(matrix[i][j])))
 				var regionPoints []Point
 				regionPoints = expand(matrix, i, j, regionPoints)
 				allRegions = append(allRegions, regionPoints)
@@ -45,8 +44,6 @@ func main() {
 	for i := 0; i < len(allRegions); i++ {
 		currentRegion := allRegions[i]
 		area := len(currentRegion)
-		fmt.Println("CURRENT REGION:", currentRegion[0])
-		fmt.Println("CURRENT REGION LEN:", len(currentRegion))
 		perimeter := 0
 		for j := 0; j < len(currentRegion); j++ {
 			p := currentRegion[j]
@@ -96,11 +93,103 @@ func main() {
 			}
 		}
 
-		// fmt.Println("AREA: ", area, " PERIMETER: ", perimeter)
 		sum += (area * perimeter)
 	}
-	println(sum)
+	println("PART 1: ", sum)
 
+	var expandedMatrix []string
+	for i := 0; i < len(matrix); i++ {
+		rowOne := ""
+		rowTwo := ""
+		for j := 0; j < len(matrix[0]); j++ {
+			rowOne += string(matrix[i][j])
+			rowOne += string(matrix[i][j])
+			rowTwo += string(matrix[i][j])
+			rowTwo += string(matrix[i][j])
+		}
+		expandedMatrix = append(expandedMatrix, rowOne)
+		expandedMatrix = append(expandedMatrix, rowTwo)
+	}
+
+	println("EXPANDED:")
+	for i := 0; i < len(expandedMatrix); i++ {
+		for j := 0; j < len(expandedMatrix[0]); j++ {
+			fmt.Print(string(expandedMatrix[i][j]))
+		}
+		println()
+	}
+
+	//Clear previous state
+	for p := range pointsCovered {
+		delete(pointsCovered, p)
+	}
+
+	var allRegionsExpanded [][]Point
+	for i := 0; i < len(matrix); i++ {
+		for j := 0; j < len(matrix[0]); j++ {
+			if !pointsCovered[Point{i, j}] {
+				var regionPoints []Point
+				regionPoints = expand(matrix, i, j, regionPoints)
+				allRegionsExpanded = append(allRegionsExpanded, regionPoints)
+			}
+		}
+	}
+
+	for i := 0; i < len(allRegionsExpanded); i++ {
+		currentRegion := allRegionsExpanded[i]
+		area := len(currentRegion)
+		corners := 0
+		for j := 0; j < len(currentRegion); j++ {
+			p := currentRegion[j]
+			println("FOR: ", string(expandedMatrix[p.row][p.col]))
+			myChar := expandedMatrix[p.row][p.col]
+
+			sameCharSides := make(map[string]bool)
+			nr := p.row - 1
+			nc := p.col
+			if nr >= 0 && nr < len(matrix) && nc >= 0 && nc < len(matrix[0]) {
+				if expandedMatrix[nr][nc] == myChar {
+					sameCharSides["UP"] = true
+				}
+			}
+
+			nr = p.row + 1
+			nc = p.col
+			if nr >= 0 && nr < len(matrix) && nc >= 0 && nc < len(matrix[0]) {
+				if expandedMatrix[nr][nc] == myChar {
+					sameCharSides["DOWN"] = true
+				}
+			}
+
+			nr = p.row
+			nc = p.col - 1
+			if nr >= 0 && nr < len(matrix) && nc >= 0 && nc < len(matrix[0]) {
+				if expandedMatrix[nr][nc] == myChar {
+					sameCharSides["LEFT"] = true
+				}
+			}
+
+			nr = p.row
+			nc = p.col + 1
+			if nr >= 0 && nr < len(matrix) && nc >= 0 && nc < len(matrix[0]) {
+				if expandedMatrix[nr][nc] == myChar {
+					sameCharSides["RIGHT"] = true
+				}
+			}
+
+			if len(sameCharSides) == 2 {
+				upLeft := sameCharSides["UP"] && sameCharSides["LEFT"]
+				upRight := sameCharSides["UP"] && sameCharSides["RIGHT"]
+				leftDown := sameCharSides["LEFT"] && sameCharSides["DOWN"]
+				downRight := sameCharSides["RIGHT"] && sameCharSides["DOWN"]
+				if upLeft || upRight || leftDown || downRight {
+					corners++
+				}
+			}
+		}
+		println("AREA: ", area)
+		println("CORNERS: ", corners)
+	}
 }
 
 func contains(slice []Point, value Point) bool {
@@ -118,7 +207,6 @@ func expand(matrix []string, row int, col int, regionPoints []Point) []Point {
 	} else {
 		return regionPoints
 	}
-	fmt.Println("CHECKING: ", string(matrix[row][col]), row, col)
 
 	regionPoints = append(regionPoints, Point{row, col})
 

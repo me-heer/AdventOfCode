@@ -40,156 +40,176 @@ func main() {
 		}
 	}
 
-	sum := 0
+	result := 0
 	for i := 0; i < len(allRegions); i++ {
 		currentRegion := allRegions[i]
 		area := len(currentRegion)
-		perimeter := 0
+
+		var leftSidePoints []Point
+		var rightSidePoints []Point
+		var upSidePoints []Point
+		var downSidePoints []Point
 		for j := 0; j < len(currentRegion); j++ {
 			p := currentRegion[j]
+			myChar := matrix[p.row][p.col]
 
-			nr := p.row - 1
-			nc := p.col
-			newPoint := Point{nr, nc}
+			nr := p.row
+			nc := p.col - 1
 			if nr >= 0 && nr < len(matrix) && nc >= 0 && nc < len(matrix[0]) {
-				if !contains(currentRegion, newPoint) {
-					perimeter++
+				if matrix[nr][nc] != myChar {
+					leftSidePoints = append(leftSidePoints, p)
 				}
 			} else {
-				perimeter++
-			}
-
-			nr = p.row + 1
-			nc = p.col
-			newPoint = Point{nr, nc}
-			if nr >= 0 && nr < len(matrix) && nc >= 0 && nc < len(matrix[0]) {
-				if !contains(currentRegion, newPoint) {
-					perimeter++
-				}
-			} else {
-				perimeter++
-			}
-
-			nr = p.row
-			nc = p.col - 1
-			newPoint = Point{nr, nc}
-			if nr >= 0 && nr < len(matrix) && nc >= 0 && nc < len(matrix[0]) {
-				if !contains(currentRegion, newPoint) {
-					perimeter++
-				}
-			} else {
-				perimeter++
-			}
-
-			nr = p.row
-			nc = p.col + 1
-			newPoint = Point{nr, nc}
-			if nr >= 0 && nr < len(matrix) && nc >= 0 && nc < len(matrix[0]) {
-				if !contains(currentRegion, newPoint) {
-					perimeter++
-				}
-			} else {
-				perimeter++
-			}
-		}
-
-		sum += (area * perimeter)
-	}
-	println("PART 1: ", sum)
-
-	var expandedMatrix []string
-	for i := 0; i < len(matrix); i++ {
-		rowOne := ""
-		rowTwo := ""
-		for j := 0; j < len(matrix[0]); j++ {
-			rowOne += string(matrix[i][j])
-			rowOne += string(matrix[i][j])
-			rowTwo += string(matrix[i][j])
-			rowTwo += string(matrix[i][j])
-		}
-		expandedMatrix = append(expandedMatrix, rowOne)
-		expandedMatrix = append(expandedMatrix, rowTwo)
-	}
-
-	println("EXPANDED:")
-	for i := 0; i < len(expandedMatrix); i++ {
-		for j := 0; j < len(expandedMatrix[0]); j++ {
-			fmt.Print(string(expandedMatrix[i][j]))
-		}
-		println()
-	}
-
-	//Clear previous state
-	for p := range pointsCovered {
-		delete(pointsCovered, p)
-	}
-
-	var allRegionsExpanded [][]Point
-	for i := 0; i < len(matrix); i++ {
-		for j := 0; j < len(matrix[0]); j++ {
-			if !pointsCovered[Point{i, j}] {
-				var regionPoints []Point
-				regionPoints = expand(matrix, i, j, regionPoints)
-				allRegionsExpanded = append(allRegionsExpanded, regionPoints)
-			}
-		}
-	}
-
-	for i := 0; i < len(allRegionsExpanded); i++ {
-		currentRegion := allRegionsExpanded[i]
-		area := len(currentRegion)
-		corners := 0
-		for j := 0; j < len(currentRegion); j++ {
-			p := currentRegion[j]
-			println("FOR: ", string(expandedMatrix[p.row][p.col]))
-			myChar := expandedMatrix[p.row][p.col]
-
-			sameCharSides := make(map[string]bool)
-			nr := p.row - 1
-			nc := p.col
-			if nr >= 0 && nr < len(matrix) && nc >= 0 && nc < len(matrix[0]) {
-				if expandedMatrix[nr][nc] == myChar {
-					sameCharSides["UP"] = true
-				}
-			}
-
-			nr = p.row + 1
-			nc = p.col
-			if nr >= 0 && nr < len(matrix) && nc >= 0 && nc < len(matrix[0]) {
-				if expandedMatrix[nr][nc] == myChar {
-					sameCharSides["DOWN"] = true
-				}
-			}
-
-			nr = p.row
-			nc = p.col - 1
-			if nr >= 0 && nr < len(matrix) && nc >= 0 && nc < len(matrix[0]) {
-				if expandedMatrix[nr][nc] == myChar {
-					sameCharSides["LEFT"] = true
-				}
+				leftSidePoints = append(leftSidePoints, p)
 			}
 
 			nr = p.row
 			nc = p.col + 1
 			if nr >= 0 && nr < len(matrix) && nc >= 0 && nc < len(matrix[0]) {
-				if expandedMatrix[nr][nc] == myChar {
-					sameCharSides["RIGHT"] = true
+				if matrix[nr][nc] != myChar {
+					rightSidePoints = append(rightSidePoints, p)
+				}
+			} else {
+				rightSidePoints = append(rightSidePoints, p)
+			}
+
+			nr = p.row - 1
+			nc = p.col
+			if nr >= 0 && nr < len(matrix) && nc >= 0 && nc < len(matrix[0]) {
+				if matrix[nr][nc] != myChar {
+					upSidePoints = append(upSidePoints, p)
+				}
+			} else {
+				upSidePoints = append(upSidePoints, p)
+			}
+
+			nr = p.row + 1
+			nc = p.col
+			if nr >= 0 && nr < len(matrix) && nc >= 0 && nc < len(matrix[0]) {
+				if matrix[nr][nc] != myChar {
+					downSidePoints = append(downSidePoints, p)
+				}
+			} else {
+				downSidePoints = append(downSidePoints, p)
+			}
+		}
+
+		leftGroups := groupAdjacentPoints(leftSidePoints, "LEFT")
+		rightGroups := groupAdjacentPoints(rightSidePoints, "RIGHT")
+		upGroups := groupAdjacentPoints(upSidePoints, "UP")
+		downGroups := groupAdjacentPoints(downSidePoints, "DOWN")
+
+		lg := 0
+		for _, group := range leftGroups {
+			if len(group) > 0 {
+				lg++
+			}
+		}
+		rg := 0
+		for _, group := range rightGroups {
+			if len(group) > 0 {
+				rg++
+			}
+		}
+		ug := 0
+		for _, group := range upGroups {
+			if len(group) > 0 {
+				ug++
+			}
+		}
+		dg := 0
+		for _, group := range downGroups {
+			if len(group) > 0 {
+				dg++
+			}
+		}
+
+		sides := (lg) + (rg) + (ug) + (dg)
+		result += area * sides
+	}
+	println(result)
+}
+
+func groupAdjacentPoints(points []Point, forSide string) [][]Point {
+	var adjacentMatrix [][]Point
+	for i := 0; i < len(points); i++ {
+		curr := points[i]
+		groupId := -1
+		var currGroup []Point
+		for g := 0; g < len(adjacentMatrix); g++ {
+			if contains(adjacentMatrix[g], curr) {
+				groupId = g
+				break
+			}
+		}
+
+		if groupId != -1 {
+			currGroup = adjacentMatrix[groupId]
+		} else {
+			currGroup = append(currGroup, curr)
+		}
+
+		var groupToBeMerged = -1
+		for j := 0; j < len(points); j++ {
+			if j == i {
+				continue
+			}
+			p1 := points[i]
+			p2 := points[j]
+
+			isAdjecent := false
+			if forSide == "LEFT" || forSide == "RIGHT" {
+				diff := p1.row - p2.row
+				if diff < 0 {
+					diff = -diff
+				}
+				if diff == 1 && p1.col == p2.col {
+					isAdjecent = true
+				}
+			} else if forSide == "UP" || forSide == "DOWN" {
+				diff := p1.col - p2.col
+				if diff < 0 {
+					diff = -diff
+				}
+				if diff == 1 && p1.row == p2.row {
+					isAdjecent = true
 				}
 			}
 
-			if len(sameCharSides) == 2 {
-				upLeft := sameCharSides["UP"] && sameCharSides["LEFT"]
-				upRight := sameCharSides["UP"] && sameCharSides["RIGHT"]
-				leftDown := sameCharSides["LEFT"] && sameCharSides["DOWN"]
-				downRight := sameCharSides["RIGHT"] && sameCharSides["DOWN"]
-				if upLeft || upRight || leftDown || downRight {
-					corners++
+			if isAdjecent {
+
+				adjecentPointGroup := -1
+				for g := 0; g < len(adjacentMatrix); g++ {
+					if contains(adjacentMatrix[g], points[j]) && !contains(adjacentMatrix[g], curr) {
+						groupToBeMerged = g
+						adjecentPointGroup = g
+						break
+					}
+				}
+
+				if !contains(currGroup, points[j]) && adjecentPointGroup == -1 {
+					currGroup = append(currGroup, points[j])
+				} else if !contains(currGroup, points[j]) && adjecentPointGroup != -1 {
+					groupId = adjecentPointGroup
 				}
 			}
 		}
-		println("AREA: ", area)
-		println("CORNERS: ", corners)
+
+		if groupId == -1 {
+			adjacentMatrix = append(adjacentMatrix, currGroup)
+		} else {
+			if groupToBeMerged != -1 {
+				before := adjacentMatrix[groupToBeMerged]
+				before = append(before, currGroup...)
+				adjacentMatrix[groupId] = []Point{}
+				adjacentMatrix[groupToBeMerged] = before
+			} else {
+				adjacentMatrix[groupId] = currGroup
+			}
+
+		}
 	}
+	return adjacentMatrix
 }
 
 func contains(slice []Point, value Point) bool {

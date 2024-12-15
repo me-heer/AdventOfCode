@@ -18,6 +18,8 @@ type Robot struct {
 	yVel int
 }
 
+var fileCounter = 1 // Counter for output file names
+
 func main() {
 	file, err := os.Open("input.txt")
 	if err != nil {
@@ -43,7 +45,7 @@ func main() {
 		println(xPos, yPos, xVel, yVel)
 	}
 
-	reader := bufio.NewReader(os.Stdin)
+	// reader := bufio.NewReader(os.Stdin)
 	for i := 0; i < 10000; i++ {
 		for j := 0; j < len(robots); j++ {
 			robot := robots[j]
@@ -66,7 +68,7 @@ func main() {
 		}
 
 		printRobots(robots)
-		_, _ = reader.ReadString('\n')
+		// _, _ = reader.ReadString('\n')
 	}
 
 	firstQuadrant := 0
@@ -93,25 +95,37 @@ func main() {
 
 	sum := firstQuadrant * secondQuadrant * thirdQuadrant * fourthQuadrant
 	println(sum)
-
 }
 
 func printRobots(robots []Robot) {
+	// Create a new file for each call
+	fileName := fmt.Sprintf("%d.txt", fileCounter)
+	file, err := os.Create(fileName)
+	if err != nil {
+		fmt.Println("Error creating file:", err)
+		return
+	}
+	defer file.Close()
+
+	writer := bufio.NewWriter(file)
+
 	for y := 0; y < height; y++ {
 		for x := 0; x < width; x++ {
 			found := false
 			for _, r := range robots {
 				if r.xPos == x && r.yPos == y {
-					print("*")
+					writer.WriteString("*")
 					found = true
 					break
 				}
 			}
 			if !found {
-				print(".")
+				writer.WriteString(".")
 			}
-
 		}
-		println()
+		writer.WriteString("\n")
 	}
+
+	writer.Flush() // Ensure all data is written to the file
+	fileCounter++  // Increment the file counter for the next call
 }

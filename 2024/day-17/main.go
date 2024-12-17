@@ -46,19 +46,49 @@ func main() {
 	originalRegB := regB
 	originalRegC := regC
 
-	i := 34900000000000
+	println("START")
+	i := 0
 	for {
 		regA = i
 		regB = originalRegB
 		regC = originalRegC
 		output := execute()
-		println(output)
 		if output == programStr {
-			println(i)
+			println("RESULT: ", i, output)
 			break
+		} else {
+			println(i, output)
+			newI := adjustIterations(output, programStr, i)
+			if newI != i {
+				i = newI
+				continue
+			}
 		}
 		i++
 	}
+}
+
+var modifier = 2
+
+func adjustIterations(output string, desired string, currIter int) int {
+	outputNums := strings.Split(output, ",")
+	if len(outputNums) < 2 {
+		return currIter
+	}
+	desiredNums := strings.Split(desired, ",")
+
+	matchCount := 0
+	for i := 0; i < modifier; i++ {
+		if outputNums[len(outputNums)-1-i] == desiredNums[len(desiredNums)-1-i] {
+			matchCount++
+		}
+	}
+	if matchCount == modifier {
+		println("Last", matchCount, "matched. Adjusting iterations to:", currIter*8*8)
+		modifier += 2
+		return currIter * 8 * 8
+	}
+	return currIter
 }
 
 func execute() string {

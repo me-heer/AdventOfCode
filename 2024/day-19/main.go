@@ -2,14 +2,14 @@ package main
 
 import (
 	"bufio"
+	"math"
 	"os"
 	"strings"
 )
 
-var towels []string
+var towels = make(map[string]bool)
 var designs []string
-var possible = make(map[string]int)
-var cache = make(map[string]string)
+var maxlen = 0
 
 func main() {
 	input, _ := os.Open("input.txt")
@@ -19,7 +19,10 @@ func main() {
 	for scanner.Scan() {
 		line := scanner.Text()
 		if strings.Contains(line, ",") {
-			towels = strings.Split(line, ", ")
+			towelsStr := strings.Split(line, ", ")
+			for _, t := range towelsStr {
+				towels[t] = true
+			}
 		} else if line == "" {
 			continue
 		} else {
@@ -27,52 +30,39 @@ func main() {
 		}
 	}
 
-	for _, t := range towels {
-		println(t)
+	for t, _ := range towels {
+		if len(t) > maxlen {
+			maxlen = len(t)
+		}
 	}
-	for _, d := range designs {
-		println(d)
-		matchDesign("", d, d)
-	}
+
 	sum := 0
-	for _, v := range possible {
-		sum += v
+	for _, d := range designs {
+		sum += matchDesign(d)
 	}
 
 	println(sum)
 }
 
-var noSolutionCache = make(map[string]bool)
+var cache = make(map[string]int)
 
-func matchDesign(curr string, remaining string, final string) {
-	if noSolutionCache[remaining] {
-		println(remaining, " NOT POSSIBLE. RETURNING")
-		return
-	}
+func matchDesign(remaining string) int {
 	if len(remaining) == 0 {
-		println("FINAL: ", final)
-		possible[final] += 1
-		return
+		return 1
 	}
-	// println("Curr: ", curr, "Remaining: ", remaining, "FINAL: ", final)
-	for _, t := range towels {
-		if strings.HasPrefix(remaining, t) {
-			newRemaining := remaining[0+len(t):]
-			newCurr := curr + t
-			if len(newRemaining) == 0 || newCurr == final {
-				possible[final] += 1
-				cache[remaining] = "END"
-				break
-			}
-			if noSolutionCache[newRemaining] {
-				continue
-			}
-			cache[remaining] = newRemaining
-			matchDesign(newCurr, newRemaining, final)
+	if v, ok := cache[remaining]; ok {
+		return v
+	}
+
+	count := 0
+	limit := int(math.Min(float64(len(remaining)), float64(maxlen)) + 1)
+	for i := 0; i < limit; i++ {
+		if towels[remaining[:i]] {
+			c := matchDesign(remaining[i:])
+			count += c
 		}
+
 	}
-	if possible[final] == 0 {
-		println("NO SOLUTION FOUND. ", remaining)
-		noSolutionCache[remaining] = true
-	}
+	cache[remaining] = count
+	return count
 }
